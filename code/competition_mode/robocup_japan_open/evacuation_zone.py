@@ -1,9 +1,17 @@
+import os
+import sys
 import time
+from listener import listener
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+modules_dir = os.path.abspath(os.path.join(current_dir, 'modules'))
+
+if modules_dir not in sys.path: sys.path.insert(0, modules_dir)
+
 import cv2
 import numpy as np
 from random import randint
 
-from listener import listener
 import config
 import camera
 import motors
@@ -11,12 +19,14 @@ import touch_sensors
 import laser_sensors
 import led
 import colour
+import oled_display
+import gyroscope
 
 from typing import Optional
 import victims
 import triangles
 
-silver_min = 110
+silver_min = 130
 black_max = 20
 
 align_failures = 0
@@ -26,10 +36,15 @@ def main():
     global align_failures, last_align_attempt
 
     motors.run(0, 0)
+    led.off()
     camera.close()
     camera.initialise("evac")
+
+    # For entry alignment, update OLED before starting
+    oled_display.reset()
+    oled_display.text("Align: Silver", 0, 0, size=10)
     
-    entrance_exit_align("silver")
+    # entrance_exit_align("silver")
     
     motors.run(0, 0)
     # Let camera warm up
@@ -41,25 +56,44 @@ def main():
     motors.run(30, 30, 1)            
     
     start_time = time.time()
+
+    oled_display.text("Starting Search", 0, 10, size=10)
+    oled_display.text(f"Victims: {config.victim_count}", 0, 20, size=10)
     
     while True:
-        if config.victim_count == 3 or time.time() - start_time > 5 * 60: break
+        elapsed = time.time() - start_time
+        print(elapsed)
+        remaining = int(4 * 60 - elapsed)
+        
+        # Update OLED with victim count and remaining time (update periodically)
+        oled_display.reset()
+        oled_display.text(f"Victims: {config.victim_count}", 0, 0, size=10)
+        oled_display.text(f"Time: {remaining}s", 0, 10, size=10)
+
+        # if config.victim_count == 3 or elapsed > 4 * 60: break
+        if config.victim_count == 2 or elapsed > 4 * 60: break
 
         search_type = victims.live if config.victim_count < 2 else victims.dead
         motors.claw_step(270, 0.00001)
 
         find(search_function=search_type)
+
+        oled_display.text(f"Victim Found", 0, 20, size=10)
         
         route_success = route(search_function=search_type, kP=0.35)
         
         if not route_success:
+            oled_display.text(f"Route Failed", 0, 30, size=10)
             config.update_log(["ROUTE FAILED"], [24])            
             continue
+        else:
+            oled_display.text(f"Route Success", 0, 30, size=10)
         
         align_success = align(search_function=search_type, step_time=0.01)
         last_align_attempt = time.time()
         
         if not align_success and align_failures < 3:
+            oled_display.text(f"Align Failed", 0, 40, size=10)
             config.update_log(["ALIGN FAILED"], [24])
             
             # Warmup camera again
@@ -69,8 +103,11 @@ def main():
 
             align_failures = align_failures + 1 if time.time() - last_align_attempt < 2 else 0
             continue
+        else: 
+            oled_display.text(f"Align Success", 0, 40, size=10)
 
         if align_failures == 3:
+            oled_display.text(f"Failed To Much", 0, 50, size=10)
             print("FAILED TOO MANY TIMES!")
 
         align_failures = 0
@@ -78,25 +115,37 @@ def main():
         grab_success = grab()
         
         if not grab_success:
+            oled_display.reset()
+            oled_display.text(f"Grab Failed", 0, 0, size=10)
             config.update_log(["GRAB FAILED"], [24])
             motors.claw_step(270, 0)
             motors.run(-config.evacuation_speed, -config.evacuation_speed, 1)
             
             direction = 1 if randint(0, 1) == 1 else -1
 
-            motors.run(config.evacuation_speed * direction, -config.evacuation_speed * direction, randint(5, 10) / 10)
+            motors.run(config.evacuation_speed, -config.evacuation_speed, randint(5, 10) / 10)
             continue
+        else:
+            oled_display.reset()
+            oled_display.text(f"Grab Success", 0, 0, size=10)
 
         motors.claw_step(230, 0.005)
         triangles.find()
+        
+        oled_display.text(f"Dumping", 0, 30, size=10)
         dump()
         
         config.victim_count += 1
 
+    oled_display.reset()
+    oled_display.text(f"Exiting", 0, 0, size=10)
     exit_evacuation_zone()
     
+    oled_display.reset()
+    oled_display.text(f"Aligning", 0, 0, size=10)
     entrance_exit_align("black")
     
+    oled_display.reset()
     motors.run(0, 0)
     camera.close()
     camera.initialise("line")
@@ -194,7 +243,7 @@ def find(search_function: callable) -> None:
 
             # Ensure we stay within the evacuation_zone
             colour_values = colour.read()
-            exit_entrance_values = [1 if value >= 110 or value <= 30 else 0 for value in colour_values]
+            exit_entrance_values = [1 if value >= 130 or value <= 30 else 0 for value in colour_values]
             exit_entrance_count = exit_entrance_count + sum(exit_entrance_values) if sum(exit_entrance_values) >= 1 else 0
 
             if exit_entrance_count >= 5:
@@ -252,7 +301,7 @@ def route(search_function: callable, kP: float) -> bool:
         
         # Ensure we stay within the evacuation_zone
         colour_values = colour.read()
-        exit_entrance_values = [1 if value >= 110 or value <= 30 else 0 for value in colour_values]
+        exit_entrance_values = [1 if value >= 130 or value <= 30 else 0 for value in colour_values]
         exit_entrance_count = exit_entrance_count + sum(exit_entrance_values) if sum(exit_entrance_values) >= 1 else 0
 
         if exit_entrance_count >= 5:
@@ -271,8 +320,12 @@ def route(search_function: callable, kP: float) -> bool:
 
 def align(search_function: callable, step_time: float) -> bool:
     image = camera.capture_array()
+    front_distance = laser_sensors.read([config.x_shut_pins[1]])[0]
+    
+    if front_distance > config.approach_distance: return False
 
     x = search_function(image)
+    
     if x is None: return False
 
     error = config.EVACUATION_WIDTH / 2 - x
@@ -353,7 +406,7 @@ def grab() -> bool:
             config.update_log(["PRESENCE CHECK", f"{y + h/2}"], [24, 10])
             print()
 
-            if y + h/2 > 75: y_levels.append(0)
+            if y + h/2 > 70: y_levels.append(0)
             else:            y_levels.append(1)
 
         average = sum(y_levels) / trials
@@ -396,18 +449,18 @@ def grab() -> bool:
     
     config.update_log(["GRAB", "CLAW CLOSE"], [24, 24])
     print()
-    motors.claw_step(120, 0.004)
+    motors.claw_step(150, 0.002)
     time.sleep(1)
     
     config.update_log(["GRAB", "MOVE BACKWARDS"], [24, 24])
     print()
-    motors.run(-config.evacuation_speed, -config.evacuation_speed, 0.7)
+    motors.run(-config.evacuation_speed, -config.evacuation_speed, 0.6)
     motors.run(0, 0)
     
-    config.update_log(["GRAB", "CLAW READJUST"], [24, 24])
-    print()
-    motors.claw_step(100, 0.03)
-    motors.claw_step(120, 0.03)
+    # config.update_log(["GRAB", "CLAW READJUST"], [24, 24])
+    # print()
+    # motors.claw_step(105, 0.03)
+    # motors.claw_step(125, 0.03)
     
     config.update_log(["GRAB", "CLAW CHECK"], [24, 24])
     print()
@@ -486,7 +539,7 @@ def exit_evacuation_zone() -> None:
             print()
             motors.run      (-config.evacuation_speed, -config.evacuation_speed, 0.5)
             motors.run_until( config.evacuation_speed, -config.evacuation_speed, laser_sensors.read, 0, "<=", 20, "MOVING TILL WALL")
-            motors.run      ( config.evacuation_speed, -config.evacuation_speed, 0.8)
+            motors.run      ( config.evacuation_speed, -config.evacuation_speed, 0.2)
             break
         
     # Follow wall till exit is found
@@ -499,7 +552,7 @@ def exit_evacuation_zone() -> None:
         
         config.update_log(["EXITING", "FINDING GAPS", ",".join(list(map(str, touch_values))), ",".join(list(map(str, colour_values))), f"Laser: {laser_value}", f"Silver: {silver_count}", f"Black: {black_count}"], [24, 30, 10, 30, 10, 6, 6])
         print()
-        motors.run(config.evacuation_speed * 0.8, config.evacuation_speed * 1.1)
+        motors.run(config.evacuation_speed * 0.7, config.evacuation_speed * 1.1)
         
         silver_count, black_count = validate_exit(colour_values, black_count, silver_count)
         
@@ -508,7 +561,7 @@ def exit_evacuation_zone() -> None:
                 # Turn to face gap
                 motors.run(0, 0, 0.3)
                 motors.run(22, 22, 1.3)
-                motors.run(-22, 22, 2.9)
+                motors.run(-22, 22, 2.6)
                 gap_initial = True
         
         if black_count >= 5:
@@ -524,7 +577,7 @@ def exit_evacuation_zone() -> None:
             entrance_exit_align("silver")
             motors.run(-config.evacuation_speed, -config.evacuation_speed, 1.2)
             motors.run(0, 0, 0.3)
-            motors.run(22, -22, 3.3)
+            motors.run(22, -22, 2.6)
             motors.run(0, 0, 0.3)
             motors.run_until( 22,  22, laser_sensors.read, 0, "<=", 20, "MOVING TILL WALL")
 
@@ -534,7 +587,7 @@ def exit_evacuation_zone() -> None:
             config.update_log(["EXITING", "FOUND WALL"], [24, 30])
             print()
             motors.run      (-config.evacuation_speed, -config.evacuation_speed, 0.35)
-            motors.run      ( config.evacuation_speed, -config.evacuation_speed, 0.35)
+            motors.run      ( config.evacuation_speed, -config.evacuation_speed, 0.2)
    
 def validate_exit(colour_values: list[int], black_count: int, silver_count: int) -> bool:
     valid_values = [colour_values[0], colour_values[1], colour_values[3], colour_values[4]]
@@ -546,4 +599,18 @@ def validate_exit(colour_values: list[int], black_count: int, silver_count: int)
     
     return silver_count, black_count
 
-if __name__ == "__main__": main()
+if __name__ == "__main__": 
+    oled_display.initialise()
+    laser_sensors.initialise()
+    touch_sensors.initialise()
+    motors.initialise()
+    gyroscope.initialise()
+    camera.initialise("evac")
+    
+    motors.run(0, 0)
+    oled_display.reset()
+    led.off()
+    
+    config.victim_count = 0
+     
+    main()
