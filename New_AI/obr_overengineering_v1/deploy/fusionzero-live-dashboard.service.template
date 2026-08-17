@@ -1,0 +1,19 @@
+[Unit]
+Description=FusionZero headless live dashboard runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__FZ_RUN_USER__
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/env bash "__FZ_RUN_SCRIPT__" --env-file "__FZ_ENV_FILE__"
+Restart=always
+RestartSec=2
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fusionzero-live-dashboard
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,578 @@
+{
+  "paths": {
+    "model_root": "."
+  },
+  "runtime": {
+    "history_size": 120,
+    "corner_stability_window": 5,
+    "corner_on_votes": 3,
+    "corner_off_votes": 1,
+    "debug_artifacts_enabled": false,
+    "debug_views": [
+      "raw",
+      "processed",
+      "line_mask",
+      "green_mask",
+      "red_mask",
+      "victim_mask",
+      "silver_line_mask",
+      "composite"
+    ]
+  },
+  "dashboard_ops": {
+    "default_profile": "lab_pc",
+    "default_camera": {
+      "index": 0,
+      "width": 640,
+      "height": 480,
+      "fps": 30
+    },
+    "default_recording": {
+      "auto_start": false,
+      "include_raw": true,
+      "include_processed": true,
+      "every_n_frames": 5,
+      "jpeg_quality": 70
+    },
+    "profiles": {
+      "lab_pc": {
+        "description": "Preset padrao para bancada no PC com capture maxima e recorder manual.",
+        "camera": {
+          "index": 0,
+          "width": 640,
+          "height": 480,
+          "fps": 30
+        },
+        "tuning": {
+          "line.black_v_max": 70,
+          "line.black_s_max": 255,
+          "line.min_area": 50,
+          "line.erode_iter": 3,
+          "line.dilate_iter": 4,
+          "green.h_min": 35,
+          "green.h_max": 90,
+          "green.s_min": 70,
+          "green.v_min": 50,
+          "green.min_area": 180,
+          "red.h1_min": 0,
+          "red.h1_max": 12,
+          "red.h2_min": 165,
+          "red.h2_max": 179,
+          "red.s_min": 120,
+          "red.v_min": 80,
+          "red.min_area": 300,
+          "silver.conf": 0.95,
+          "silver.blur": 7,
+          "dead.black_v_max": 60
+        },
+        "recording": {
+          "auto_start": false,
+          "include_raw": false,
+          "include_processed": true,
+          "every_n_frames": 20,
+          "jpeg_quality": 70
+        },
+        "notes": [
+          "melhor para tuning inicial e comparacao de mascaras no notebook/desktop",
+          "nao altera a FSM automaticamente"
+        ]
+      },
+      "pi3_field": {
+        "description": "Preset de campo para Raspberry Pi 3 com captura mais leve e recorder esparso.",
+        "camera": {
+          "index": 0,
+          "width": 640,
+          "height": 480,
+          "fps": 20
+        },
+        "tuning": {
+          "line.black_v_max": 68,
+          "line.black_s_max": 240,
+          "line.min_area": 60,
+          "line.erode_iter": 2,
+          "line.dilate_iter": 3,
+          "green.h_min": 38,
+          "green.h_max": 92,
+          "green.s_min": 78,
+          "green.v_min": 58,
+          "green.min_area": 210,
+          "red.h1_min": 0,
+          "red.h1_max": 11,
+          "red.h2_min": 167,
+          "red.h2_max": 179,
+          "red.s_min": 130,
+          "red.v_min": 88,
+          "red.min_area": 340,
+          "silver.conf": 0.96,
+          "silver.blur": 5,
+          "dead.black_v_max": 55
+        },
+        "recording": {
+          "auto_start": false,
+          "include_raw": false,
+          "include_processed": true,
+          "every_n_frames": 30,
+          "jpeg_quality": 65
+        },
+        "notes": [
+          "prioriza estabilidade operacional no Pi 3",
+          "reduz custo de capturas e do recorder"
+        ]
+      },
+      "rescue_test": {
+        "description": "Preset para ensaios de rescue com recorder ligado e thresholds mais permissivos para bola/vitima.",
+        "camera": {
+          "index": 0,
+          "width": 640,
+          "height": 480,
+          "fps": 20
+        },
+        "tuning": {
+          "line.black_v_max": 72,
+          "line.black_s_max": 255,
+          "line.min_area": 55,
+          "line.erode_iter": 2,
+          "line.dilate_iter": 4,
+          "green.h_min": 35,
+          "green.h_max": 90,
+          "green.s_min": 70,
+          "green.v_min": 50,
+          "green.min_area": 150,
+          "red.h1_min": 0,
+          "red.h1_max": 12,
+          "red.h2_min": 165,
+          "red.h2_max": 179,
+          "red.s_min": 115,
+          "red.v_min": 78,
+          "red.min_area": 260,
+          "silver.conf": 0.88,
+          "silver.blur": 9,
+          "dead.black_v_max": 72
+        },
+        "recording": {
+          "auto_start": true,
+          "include_raw": false,
+          "include_processed": true,
+          "every_n_frames": 12,
+          "jpeg_quality": 72
+        },
+        "notes": [
+          "bom para comparar tentativas de rescue no replay",
+          "evita ligar raw sampling por padrao para nao inflar os artefatos"
+        ]
+      },
+      "line_only": {
+        "description": "Preset focado em seguir linha; use o argumento --line-only para bloquear transicoes de resgate.",
+        "camera": {
+          "index": 0,
+          "width": 640,
+          "height": 480,
+          "fps": 25
+        },
+        "tuning": {
+          "line.black_v_max": 78,
+          "line.black_s_max": 255,
+          "line.min_area": 65,
+          "line.erode_iter": 2,
+          "line.dilate_iter": 5,
+          "green.h_min": 35,
+          "green.h_max": 90,
+          "green.s_min": 75,
+          "green.v_min": 55,
+          "green.min_area": 260,
+          "red.h1_min": 0,
+          "red.h1_max": 10,
+          "red.h2_min": 168,
+          "red.h2_max": 179,
+          "red.s_min": 135,
+          "red.v_min": 92,
+          "red.min_area": 420,
+          "silver.conf": 0.98,
+          "silver.blur": 5,
+          "dead.black_v_max": 50
+        },
+        "recording": {
+          "auto_start": false,
+          "include_raw": true,
+          "include_processed": true,
+          "every_n_frames": 5,
+          "jpeg_quality": 68
+        },
+        "notes": [
+          "favorece contraste de linha e reduz ruido de marcadores",
+          "nao desliga detectores no backend, so ajusta o preset operacional"
+        ]
+      },
+      "silver_validation": {
+        "description": "Preset para validar silver line real com recorder mais denso e threshold levemente mais permissivo para analise assistida.",
+        "camera": {
+          "index": 0,
+          "width": 640,
+          "height": 480,
+          "fps": 20
+        },
+        "tuning": {
+          "line.black_v_max": 68,
+          "green.min_area": 220,
+          "silver.conf": 0.92,
+          "silver.blur": 5
+        },
+        "recording": {
+          "auto_start": true,
+          "include_raw": true,
+          "include_processed": true,
+          "every_n_frames": 10,
+          "jpeg_quality": 72
+        },
+        "notes": [
+          "usar com Force LINE para validar silver em campo sem trocar a FSM automaticamente",
+          "combina recorder mais denso com thresholds de validacao para replay offline"
+        ]
+      }
+    }
+  },
+  "models": {
+    "silver_line": "5_ai_training_data/0_models/silver_line/silver_detector_pi4_quantized.pt",
+    "dead_victim_tflite": "5_ai_training_data/0_models/dead_vicitims/dead.tflite",
+    "silver_ball": "New_AI/obr_overengineering_v1/models/silver_ball_classifier.ts"
+  },
+  "offline_ops": {
+    "replay": {
+      "output_root": "New_AI/obr_overengineering_v1/artifacts/vision_replay",
+      "default_state": "FOLLOWING_LINE",
+      "frame_kind": "raw",
+      "save_overlay_frames": true,
+      "save_debug_views": false
+    },
+    "edge_dataset": {
+      "output_root": "New_AI/obr_overengineering_v1/dataset/edge_cases",
+      "metadata_file": "metadata.jsonl",
+      "debug_views": [
+        "processed",
+        "silver_line_mask",
+        "composite"
+      ]
+    }
+  },
+  "preprocessor": {
+    "default_profile": "line",
+    "line": {
+      "roi": {
+        "x": 0.0,
+        "y": 0.3,
+        "w": 1.0,
+        "h": 0.7
+      },
+      "resize": {
+        "width": 320,
+        "height": 200
+      },
+      "luma": {
+        "enabled": true,
+        "target_mean": 128.0,
+        "min_gain": 0.85,
+        "max_gain": 1.25
+      },
+      "clahe": {
+        "enabled": true,
+        "clip_limit": 2.0,
+        "tile_grid_size": [
+          8,
+          8
+        ]
+      },
+      "morphology": {
+        "enabled": true,
+        "kernel_size": 3,
+        "open_iterations": 1,
+        "close_iterations": 1
+      }
+    },
+    "rescue": {
+      "roi": {
+        "x": 0.0,
+        "y": 0.15,
+        "w": 1.0,
+        "h": 0.85
+      },
+      "resize": {
+        "width": 320,
+        "height": 240
+      },
+      "luma": {
+        "enabled": true,
+        "target_mean": 132.0,
+        "min_gain": 0.8,
+        "max_gain": 1.3
+      },
+      "clahe": {
+        "enabled": true,
+        "clip_limit": 1.8,
+        "tile_grid_size": [
+          8,
+          8
+        ]
+      },
+      "morphology": {
+        "enabled": true,
+        "kernel_size": 3,
+        "open_iterations": 1,
+        "close_iterations": 1
+      }
+    }
+  },
+  "detectors": {
+    "line": {
+      "min_black_area": 50,
+      "black_h_max": 180,
+      "black_s_max": 255,
+      "black_v_max": 70,
+      "erode_iter": 3,
+      "dilate_iter": 4,
+      "erode_ksize": 3,
+      "dilate_ksize": 3,
+      "line_border_margin": 8,
+      "round_blob_circularity": 0.62,
+      "round_blob_aspect": 1.35,
+      "min_aspect_without_border": 1.55,
+      "min_internal_long_side_ratio": 0.48,
+      "compact_extent_reject": 0.40,
+      "compact_solidity_reject": 0.70,
+      "compact_circularity_reject": 0.32,
+      "min_ground_span_ratio": 0.38,
+      "min_vertical_support_ratio": 0.55,
+      "min_line_aspect": 1.25,
+      "max_line_width_ratio": 0.52,
+      "max_line_row_occupancy": 0.48,
+      "max_bottom_row_occupancy": 0.38,
+      "bottom_band_ratio": 0.12,
+      "min_row_occupancy": 0.01,
+      "wide_corridor_enabled": true,
+      "wide_corridor_min_height_ratio": 0.85,
+      "wide_corridor_max_width_ratio": 0.90,
+      "wide_corridor_min_side_gap_ratio": 0.08,
+      "wide_corridor_min_side_support_ratio": 0.60,
+      "wide_corridor_max_center_range_ratio": 0.45,
+      "wide_corridor_max_row_occupancy": 0.82,
+      "wide_corridor_max_bottom_row_occupancy": 0.82,
+      "turn_corridor_enabled": true,
+      "turn_corridor_min_area_ratio": 0.30,
+      "turn_corridor_min_height_ratio": 0.50,
+      "turn_corridor_max_width_ratio": 1.0,
+      "turn_corridor_min_side_support_ratio": 0.45,
+      "turn_corridor_min_center_range_ratio": 0.12,
+      "turn_corridor_max_median_row_occupancy": 0.96,
+      "turn_corridor_max_bottom_row_occupancy": 1.0,
+      "turn_corridor_max_extent_ratio": 0.98,
+      "right_angle_corridor_enabled": true,
+      "right_angle_corridor_min_area_ratio": 0.30,
+      "right_angle_corridor_min_height_ratio": 0.65,
+      "right_angle_corridor_min_width_ratio": 0.75,
+      "right_angle_corridor_min_center_range_ratio": 0.08,
+      "right_angle_corridor_max_extent_ratio": 0.995,
+      "turn_continuation_enabled": true,
+      "turn_continuation_min_area_ratio": 0.75,
+      "turn_continuation_min_height_ratio": 0.85,
+      "turn_continuation_min_width_ratio": 0.82,
+      "turn_continuation_min_extent_ratio": 0.90,
+      "turn_continuation_max_extent_ratio": 0.999,
+      "turn_continuation_max_gap_frames": 1,
+      "turn_continuation_max_frames": 18,
+      "turn_continuation_min_fragment_area_ratio": 0.005,
+      "turn_continuation_min_fragment_height_ratio": 0.18,
+      "turn_continuation_max_fragment_width_ratio": 0.50,
+      "turn_continuation_min_fragment_aspect": 1.25,
+      "turn_continuation_min_wide_area_ratio": 0.05,
+      "turn_continuation_min_wide_width_ratio": 0.50,
+      "turn_continuation_min_wide_aspect": 1.80,
+      "turn_continuation_min_bend_range_ratio": 0.08
+    },
+    "color": {
+      "green_h_min": 35,
+      "green_h_max": 90,
+      "green_s_min": 70,
+      "green_v_min": 50,
+      "green_min_area": 180,
+      "green_min_aspect": 0.35,
+      "green_max_aspect": 3.0,
+      "green_min_line_pixels_nearby": 110,
+      "green_pair_min_separation_ratio": 0.24,
+      "green_pair_max_vertical_delta_ratio": 0.45,
+      "green_pair_min_area_balance": 0.18,
+      "green_region_inner_margin_ratio": 0.15,
+      "green_region_min_saturation_p25": 50,
+      "green_region_min_local_contrast": 8,
+      "green_pair_h_min": 35,
+      "green_pair_h_max": 105,
+      "green_pair_s_min": 70,
+      "green_pair_v_min": 50,
+      "green_pair_max_area_ratio": 0.25,
+      "green_pair_hold_frames": 2,
+      "green_single_recovery_h_min": 55,
+      "green_single_recovery_h_max": 110,
+      "green_single_recovery_s_min": 40,
+      "green_single_recovery_v_min": 30,
+      "green_single_recovery_max_area_ratio": 0.25,
+      "green_single_recovery_min_line_pixels": 110,
+      "green_before_is_above": true,
+      "red_h1_min": 0,
+      "red_h1_max": 12,
+      "red_h2_min": 165,
+      "red_h2_max": 179,
+      "red_s_min": 120,
+      "red_v_min": 80,
+      "red_min_area": 300,
+      "red_min_ratio": 3.5,
+      "red_min_long_side": 30,
+      "green_row_margin": 4,
+      "color_erode_iter": 1,
+      "color_dilate_iter": 2,
+      "color_kernel": 3,
+      "green_corner_conf_threshold": 0.62,
+      "green_corner_min_area": 520,
+      "green_corner_max_area_ratio": 0.55,
+      "green_corner_min_short_side": 18,
+      "green_corner_min_aspect": 0.30,
+      "green_corner_max_aspect": 4.2,
+      "green_corner_min_extent": 0.36,
+      "green_corner_min_solidity": 0.55,
+      "green_corner_border_margin": 12
+    },
+    "ball": {
+      "crop_size": 200,
+      "silver_blur": 7,
+      "silver_hough_dp": 1.2,
+      "silver_hough_min_distance": 60,
+      "silver_hough_param1": 120,
+      "silver_hough_param2": 30,
+      "silver_hough_min_radius": 8,
+      "silver_hough_max_radius": 120,
+      "dead_white_threshold": [
+        160,
+        160,
+        160
+      ],
+      "dead_black_threshold": [
+        60,
+        60,
+        60
+      ],
+      "dead_min_black_area": 300,
+      "dead_min_y": 40,
+      "dead_radius_y_min": -50,
+      "dead_hough_dp": 1.0,
+      "dead_hough_min_distance": 200,
+      "dead_hough_param1": 50,
+      "dead_hough_param2": 30,
+      "dead_hough_min_radius": 5,
+      "dead_hough_max_radius": 150,
+      "silver_conf_threshold": 0.50,
+      "silver_candidate_threshold": 0.36,
+      "silver_max_candidates": 3,
+      "silver_candidate_min_center_dist": 22,
+      "silver_candidate_iou_nms": 0.35,
+      "black_conf_threshold": 0.60,
+      "silver_black_overlap_px": 24,
+      "silver_model_enabled": true,
+      "silver_model_threshold": 0.62,
+      "silver_model_input_size": 64
+    },
+    "silver_line": {
+      "enabled": true,
+      "confidence_threshold": 0.95,
+      "candidate_threshold": 0.76,
+      "run_every_n_frames": 2,
+      "mode": "assist",
+      "heuristic_enabled": true,
+      "heuristic_threshold": 0.68,
+      "decision_policy": "model_or_heuristic",
+      "stability_window": 4,
+      "required_votes": 3,
+      "specular_v_min": 180,
+      "specular_s_max": 80,
+      "min_area": 260,
+      "min_width_ratio": 0.32,
+      "min_aspect_ratio": 2.2,
+      "max_area_ratio": 0.48,
+      "top_clear_band_ratio": 0.14,
+      "top_black_ratio_max": 0.035,
+      "center_tolerance_ratio": 0.48,
+      "focus_height_ratio": 0.60,
+      "kernel_size": 5,
+      "mask_open_iterations": 1,
+      "mask_close_iterations": 1
+    },
+    "dead_victim": {
+      "enabled": true,
+      "confidence_threshold": 0.55,
+      "run_every_n_frames": 3
+    }
+  },
+  "pipelines": {
+    "SEARCHING_LINE": {
+      "profile": "line",
+      "detectors": [
+        "line",
+        "red"
+      ]
+    },
+    "FOLLOWING_LINE": {
+      "profile": "line",
+      "detectors": [
+        "line",
+        "green",
+        "red",
+        "silver_line"
+      ]
+    },
+    "VALIDATING_GAP": {
+      "profile": "line",
+      "detectors": [
+        "line",
+        "red"
+      ]
+    },
+    "CROSSING_GAP": {
+      "profile": "line",
+      "detectors": [
+        "line"
+      ]
+    },
+    "VICTIM_FOUND": {
+      "profile": "rescue",
+      "detectors": [
+        "balls",
+        "victims",
+        "red_zone",
+        "green_corner"
+      ]
+    },
+    "RESCUE_ZONE_DETECTED": {
+      "profile": "rescue",
+      "detectors": [
+        "balls",
+        "victims",
+        "red_zone",
+        "green_corner"
+      ]
+    },
+    "default": {
+      "profile": "line",
+      "detectors": [
+        "line",
+        "red"
+      ]
+    }
+  },
+  "benchmark": {
+    "baseline_monolithic_ms": 58.0,
+    "state_expected_ms": {
+      "SEARCHING_LINE": 22.0,
+      "FOLLOWING_LINE": 34.0,
+      "VALIDATING_GAP": 24.0,
+      "CROSSING_GAP": 21.0,
+      "VICTIM_FOUND": 27.0,
+      "RESCUE_ZONE_DETECTED": 29.0
+    }
+  }
+}

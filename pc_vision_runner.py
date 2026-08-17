@@ -366,6 +366,217 @@ class BallDetector:
         return int(centre_x)
 
 
+class ColorMarkerDetector:
+    def __init__(self):
+        # Green square-like markers
+        self.GREEN_H_MIN = 35
+        self.GREEN_H_MAX = 90
+        self.GREEN_S_MIN = 70
+        self.GREEN_V_MIN = 50
+        # Lower area + wider aspect help when black tape occludes part of the green square.
+        self.GREEN_MIN_AREA = 180
+        self.GREEN_MIN_ASPECT = 0.35
+        self.GREEN_MAX_ASPECT = 3.00
+
+        # Red finish-line marker
+        self.RED_H1_MIN = 0
+        self.RED_H1_MAX = 12
+        self.RED_H2_MIN = 165
+        self.RED_H2_MAX = 179
+        self.RED_S_MIN = 120
+        self.RED_V_MIN = 80
+        self.RED_MIN_AREA = 300
+        self.RED_MIN_RATIO = 3.5
+        self.RED_MIN_LONG_SIDE = 30
+
+        self.GREEN_ROW_MARGIN = 4
+
+        # Shared morphology
+        self.COLOR_ERODE_ITER = 1
+        self.COLOR_DILATE_ITER = 2
+        self.COLOR_KERNEL = 3
+
+    def _clean_mask(self, mask):
+        kernel_size = max(1, int(self.COLOR_KERNEL))
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+
+        if int(self.COLOR_ERODE_ITER) > 0:
+            mask = cv2.erode(mask, kernel, iterations=int(self.COLOR_ERODE_ITER))
+        if int(self.COLOR_DILATE_ITER) > 0:
+            mask = cv2.dilate(mask, kernel, iterations=int(self.COLOR_DILATE_ITER))
+        return mask
+
+    def detect_green_side(self, image):
+        if image is None or image.size == 0:
+            return {"found": False, "side": "NONE", "contours": []}
+
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        lower = (int(self.GREEN_H_MIN), int(self.GREEN_S_MIN), int(self.GREEN_V_MIN))
+        upper = (int(self.GREEN_H_MAX), 255, 255)
+        green_mask = cv2.inRange(hsv, lower, upper)
+        green_mask = self._clean_mask(green_mask)
+
+        contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        valid_contours = []
+        has_left = False
+        has_right = False
+        half_x = image.shape[1] / 2.0
+
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area < float(self.GREEN_MIN_AREA):
+                continue
+
+            x, y, w, h = cv2.boundingRect(contour)
+            if h <= 0:
+                continue
+            aspect = w / float(h)
+            if aspect < float(self.GREEN_MIN_ASPECT) or aspect > float(self.GREEN_MAX_ASPECT):
+                continue
+
+            valid_contours.append(contour)
+            centre_x = x + (w / 2.0)
+            if centre_x < half_x:
+                has_left = True
+            else:
+                has_right = True
+
+        if has_left and has_right:
+            side = "BOTH"
+        elif has_left:
+            side = "LEFT"
+        elif has_right:
+            side = "RIGHT"
+        else:
+            side = "NONE"
+
+        return {"found": side != "NONE", "side": side, "contours": valid_contours}
+
+    def detect_red_presence(self, image):
+        if image is None or image.size == 0:
+            return {"found": False, "area": 0, "contours": []}
+
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        low_1 = (int(self.RED_H1_MIN), int(self.RED_S_MIN), int(self.RED_V_MIN))
+        high_1 = (int(self.RED_H1_MAX), 255, 255)
+        low_2 = (int(self.RED_H2_MIN), int(self.RED_S_MIN), int(self.RED_V_MIN))
+        high_2 = (int(self.RED_H2_MAX), 255, 255)
+
+        red_mask_1 = cv2.inRange(hsv, low_1, high_1)
+        red_mask_2 = cv2.inRange(hsv, low_2, high_2)
+        red_mask = cv2.bitwise_or(red_mask_1, red_mask_2)
+        red_mask = self._clean_mask(red_mask)
+
+        contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        valid_contours = []
+        total_area = 0.0
+
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area < float(self.RED_MIN_AREA):
+                continue
+
+            rect = cv2.minAreaRect(contour)
+            width = float(rect[1][0])
+            height = float(rect[1][1])
+            short_side = min(width, height)
+            long_side = max(width, height)
+            if short_side <= 0.0:
+                continue
+
+            ratio = long_side / short_side
+            if ratio < float(self.RED_MIN_RATIO):
+                continue
+            if long_side < float(self.RED_MIN_LONG_SIDE):
+                continue
+
+            valid_contours.append(contour)
+            total_area += area
+
+        return {
+            "found": total_area >= float(self.RED_MIN_AREA) and len(valid_contours) > 0,
+            "area": int(total_area),
+            "contours": valid_contours,
+        }
+
+    def _horizontal_reference_y(self, black_mask, x0, x1):
+        if black_mask is None or black_mask.size == 0:
+            return None
+
+        x0 = max(0, int(x0))
+        x1 = min(black_mask.shape[1], int(x1))
+        if x1 <= x0:
+            return None
+
+        roi = black_mask[:, x0:x1]
+        if roi.size == 0:
+            return None
+
+        row_counts = np.count_nonzero(roi, axis=1).astype(np.float32)
+        if row_counts.max() <= 0:
+            return None
+
+        smooth = cv2.GaussianBlur(row_counts.reshape(-1, 1), (1, 9), 0).reshape(-1)
+        return int(np.argmax(smooth))
+
+    def detect_green_instruction(self, image, black_mask):
+        green = self.detect_green_side(image)
+        contours = green["contours"]
+
+        if len(contours) >= 2:
+            return {
+                "found": True,
+                "side": "BOTH",
+                "instruction": "VERDE MEIA VOLTA",
+                "ref_y": None,
+                "contours": contours,
+            }
+
+        if len(contours) == 0:
+            return {
+                "found": False,
+                "side": "NONE",
+                "instruction": "NO GREEN",
+                "ref_y": None,
+                "contours": [],
+            }
+
+        contour = contours[0]
+        x, y, w, h = cv2.boundingRect(contour)
+        green_center_y = y + (h / 2.0)
+
+        ref_y = self._horizontal_reference_y(
+            black_mask,
+            x0=x - (w * 0.5),
+            x1=x + w + (w * 0.5),
+        )
+        if ref_y is None:
+            ref_y = image.shape[0] / 2.0
+
+        margin = int(self.GREEN_ROW_MARGIN)
+        if green_center_y <= (ref_y - margin):
+            instruction = "VERDE DEPOIS"
+        elif green_center_y >= (ref_y + margin):
+            instruction = "VERDE ANTES"
+        else:
+            # Near line crossing: use dominant pixels above/below the reference row.
+            mask_one = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint8)
+            cv2.drawContours(mask_one, [contour], -1, 255, thickness=cv2.FILLED)
+            upper = np.count_nonzero(mask_one[: int(ref_y), :])
+            lower = np.count_nonzero(mask_one[int(ref_y) :, :])
+            instruction = "VERDE DEPOIS" if upper >= lower else "VERDE ANTES"
+
+        return {
+            "found": True,
+            "side": green["side"],
+            "instruction": instruction,
+            "ref_y": int(ref_y),
+            "contours": contours,
+        }
+
+
 def open_camera(index, width, height, fps):
     cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
     if not cap.isOpened():
@@ -397,6 +608,7 @@ def main():
 
     line_detector = LineDetector(args.line_width, args.line_height)
     ball_detector = BallDetector(320, 240, display=True)
+    color_detector = ColorMarkerDetector()
 
     silver_detector = None
     if SilverLineDetector is not None:
@@ -424,8 +636,11 @@ def main():
             else:
                 line_view = perspective_transform(line_frame, args.line_width, args.line_height)
             line_display = line_view.copy()
+            silver_found = False
+            green_side = "NONE"
+            red_found = False
 
-            contour, _ = line_detector.black_mask(line_view, line_display)
+            contour, black_mask = line_detector.black_mask(line_view, line_display)
             if contour is not None:
                 angle, gap = line_detector.calculate_angle(contour, line_display)
                 draw_label(line_display, f"ANGLE: {angle}", 5, 20, (0, 255, 0))
@@ -440,6 +655,7 @@ def main():
                     if isinstance(result, tuple):
                         result = result[0]
                     if result["prediction"] == 1 and result["confidence"] >= args.silver_conf:
+                        silver_found = True
                         draw_label(
                             line_display,
                             f"SILVER LINE {result['confidence']:.2f}",
@@ -449,6 +665,36 @@ def main():
                         )
                 except Exception as exc:
                     draw_label(line_display, f"SILVER ERR: {exc}", 5, 70, (0, 0, 255))
+
+            green_instruction = color_detector.detect_green_instruction(line_view, black_mask)
+            if green_instruction["found"]:
+                green_side = green_instruction["side"]
+                cv2.drawContours(line_display, green_instruction["contours"], -1, (0, 255, 0), 2)
+                draw_label(line_display, f"GREEN {green_side}", 5, 95, (0, 200, 0))
+                draw_label(line_display, green_instruction["instruction"], 5, 145, (0, 255, 0))
+
+            red_result = color_detector.detect_red_presence(line_view)
+            if red_result["found"]:
+                red_found = True
+                cv2.drawContours(line_display, red_result["contours"], -1, (0, 0, 255), 2)
+                draw_label(line_display, "RED LINE", 5, 120, (0, 0, 255))
+
+            line_status = [
+                "LINE OK" if contour is not None else "LINE NO",
+                "SILVER LINE" if silver_found else "NO SILVER LINE",
+                green_instruction["instruction"] if green_instruction["found"] else "NO GREEN",
+                "RED LINE" if red_found else "NO RED",
+            ]
+            cv2.putText(
+                line_display,
+                " | ".join(line_status),
+                (5, line_display.shape[0] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (255, 255, 0),
+                1,
+                cv2.LINE_AA,
+            )
 
             cv2.imshow("Line", line_display)
 

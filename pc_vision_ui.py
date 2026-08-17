@@ -8,7 +8,13 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 
-from pc_vision_runner import LineDetector, BallDetector, perspective_transform, SilverLineDetector
+from pc_vision_runner import (
+    LineDetector,
+    BallDetector,
+    ColorMarkerDetector,
+    perspective_transform,
+    SilverLineDetector,
+)
 
 
 def open_camera(index, width, height, fps):
@@ -67,6 +73,7 @@ class VisionUI:
 
         self.line_detector = LineDetector(self.line_width.get(), self.line_height.get())
         self.ball_detector = BallDetector(320, 240, display=True)
+        self.color_detector = ColorMarkerDetector()
 
         self.silver_detector = None
         if SilverLineDetector is not None:
@@ -203,6 +210,206 @@ class VisionUI:
         )
         self.silver_enabled = tk.BooleanVar(value=True)
         ttk.Checkbutton(silver_frame, text="Enable Silver AI", variable=self.silver_enabled).pack(anchor="w")
+
+        # Green/Red markers
+        marker_frame = ttk.LabelFrame(self.ctrl, text="Markers - Green/Red")
+        marker_frame.pack(fill="x", pady=4)
+
+        self.marker_enabled = tk.BooleanVar(value=True)
+        ttk.Checkbutton(marker_frame, text="Enable Green/Red detector", variable=self.marker_enabled).pack(anchor="w")
+
+        self.green_h_min = self._add_slider(
+            marker_frame,
+            "Green H min",
+            0,
+            179,
+            35,
+            1,
+            "Hue minimo do verde",
+            int_var=True,
+        )
+        self.green_h_max = self._add_slider(
+            marker_frame,
+            "Green H max",
+            0,
+            179,
+            90,
+            1,
+            "Hue maximo do verde",
+            int_var=True,
+        )
+        self.green_s_min = self._add_slider(
+            marker_frame,
+            "Green S min",
+            0,
+            255,
+            70,
+            1,
+            "Saturacao minima do verde",
+            int_var=True,
+        )
+        self.green_v_min = self._add_slider(
+            marker_frame,
+            "Green V min",
+            0,
+            255,
+            50,
+            1,
+            "Brilho minimo do verde",
+            int_var=True,
+        )
+        self.green_min_area = self._add_slider(
+            marker_frame,
+            "Green min area",
+            0,
+            5000,
+            180,
+            1,
+            "Area minima para marcador verde",
+            int_var=True,
+        )
+        self.green_aspect_min = self._add_slider(
+            marker_frame,
+            "Green aspect min",
+            0.10,
+            2.00,
+            0.35,
+            0.01,
+            "Aspecto minimo (largura/altura)",
+            int_var=False,
+        )
+        self.green_aspect_max = self._add_slider(
+            marker_frame,
+            "Green aspect max",
+            0.50,
+            4.00,
+            3.00,
+            0.01,
+            "Aspecto maximo (largura/altura)",
+            int_var=False,
+        )
+
+        self.red_h1_min = self._add_slider(
+            marker_frame,
+            "Red H1 min",
+            0,
+            179,
+            0,
+            1,
+            "Hue baixo minimo do vermelho",
+            int_var=True,
+        )
+        self.red_h1_max = self._add_slider(
+            marker_frame,
+            "Red H1 max",
+            0,
+            179,
+            12,
+            1,
+            "Hue baixo maximo do vermelho",
+            int_var=True,
+        )
+        self.red_h2_min = self._add_slider(
+            marker_frame,
+            "Red H2 min",
+            0,
+            179,
+            165,
+            1,
+            "Hue alto minimo do vermelho",
+            int_var=True,
+        )
+        self.red_h2_max = self._add_slider(
+            marker_frame,
+            "Red H2 max",
+            0,
+            179,
+            179,
+            1,
+            "Hue alto maximo do vermelho",
+            int_var=True,
+        )
+        self.red_s_min = self._add_slider(
+            marker_frame,
+            "Red S min",
+            0,
+            255,
+            120,
+            1,
+            "Saturacao minima do vermelho",
+            int_var=True,
+        )
+        self.red_v_min = self._add_slider(
+            marker_frame,
+            "Red V min",
+            0,
+            255,
+            80,
+            1,
+            "Brilho minimo do vermelho",
+            int_var=True,
+        )
+        self.red_min_area = self._add_slider(
+            marker_frame,
+            "Red min area",
+            0,
+            5000,
+            300,
+            1,
+            "Area minima para considerar RED LINE",
+            int_var=True,
+        )
+        self.red_min_ratio = self._add_slider(
+            marker_frame,
+            "Red min ratio",
+            1.0,
+            20.0,
+            3.5,
+            0.1,
+            "Razao minima (lado maior/lado menor) para faixa vermelha",
+            int_var=False,
+        )
+        self.red_min_long_side = self._add_slider(
+            marker_frame,
+            "Red min long side",
+            1,
+            400,
+            30,
+            1,
+            "Tamanho minimo do lado maior da faixa vermelha (px)",
+            int_var=True,
+        )
+
+        self.color_erode = self._add_slider(
+            marker_frame,
+            "Color erode iter",
+            0,
+            10,
+            1,
+            1,
+            "Erosao das mascaras de cor",
+            int_var=True,
+        )
+        self.color_dilate = self._add_slider(
+            marker_frame,
+            "Color dilate iter",
+            0,
+            10,
+            2,
+            1,
+            "Dilatacao das mascaras de cor",
+            int_var=True,
+        )
+        self.green_row_margin = self._add_slider(
+            marker_frame,
+            "Green row margin",
+            0,
+            30,
+            4,
+            1,
+            "Margem em pixels para decidir ANTES/DEPOIS",
+            int_var=True,
+        )
 
         # Balls (silver) - shape based
         live_frame = ttk.LabelFrame(self.ctrl, text="Ball - Silver (Shape)")
@@ -471,6 +678,25 @@ class VisionUI:
         self.ball_detector.HOUGH_PARAMETER_2 = int(self.hough_p2.get())
         self.ball_detector.HOUGH_MIN_RADIUS = int(self.hough_min_r.get())
         self.ball_detector.HOUGH_MAX_RADIUS = int(self.hough_max_r.get())
+        self.color_detector.GREEN_H_MIN = int(self.green_h_min.get())
+        self.color_detector.GREEN_H_MAX = int(self.green_h_max.get())
+        self.color_detector.GREEN_S_MIN = int(self.green_s_min.get())
+        self.color_detector.GREEN_V_MIN = int(self.green_v_min.get())
+        self.color_detector.GREEN_MIN_AREA = int(self.green_min_area.get())
+        self.color_detector.GREEN_MIN_ASPECT = float(self.green_aspect_min.get())
+        self.color_detector.GREEN_MAX_ASPECT = float(self.green_aspect_max.get())
+        self.color_detector.RED_H1_MIN = int(self.red_h1_min.get())
+        self.color_detector.RED_H1_MAX = int(self.red_h1_max.get())
+        self.color_detector.RED_H2_MIN = int(self.red_h2_min.get())
+        self.color_detector.RED_H2_MAX = int(self.red_h2_max.get())
+        self.color_detector.RED_S_MIN = int(self.red_s_min.get())
+        self.color_detector.RED_V_MIN = int(self.red_v_min.get())
+        self.color_detector.RED_MIN_AREA = int(self.red_min_area.get())
+        self.color_detector.RED_MIN_RATIO = float(self.red_min_ratio.get())
+        self.color_detector.RED_MIN_LONG_SIDE = int(self.red_min_long_side.get())
+        self.color_detector.COLOR_ERODE_ITER = int(self.color_erode.get())
+        self.color_detector.COLOR_DILATE_ITER = int(self.color_dilate.get())
+        self.color_detector.GREEN_ROW_MARGIN = int(self.green_row_margin.get())
 
         # Line detection
         line_w = int(self.line_width.get())
@@ -485,8 +711,9 @@ class VisionUI:
         line_display = line_view.copy()
 
         contour = None
+        black_mask = None
         try:
-            contour, _ = self.line_detector.black_mask(line_view, line_display)
+            contour, black_mask = self.line_detector.black_mask(line_view, line_display)
             if contour is not None:
                 angle, gap = self.line_detector.calculate_angle(contour, line_display)
                 cv2.putText(
@@ -563,6 +790,77 @@ class VisionUI:
                     cv2.LINE_AA,
                 )
 
+        green_found = False
+        green_side = "NONE"
+        green_instruction_text = "NO GREEN"
+        red_found = False
+        if self.marker_enabled.get():
+            try:
+                green_result = self.color_detector.detect_green_instruction(line_view, black_mask)
+                if green_result["found"]:
+                    green_found = True
+                    green_side = green_result["side"]
+                    cv2.drawContours(line_display, green_result["contours"], -1, (0, 255, 0), 2)
+                    cv2.putText(
+                        line_display,
+                        f"GREEN {green_side}",
+                        (5, 95),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (0, 200, 0),
+                        2,
+                        cv2.LINE_AA,
+                    )
+                    green_instruction_text = green_result["instruction"]
+                    cv2.putText(
+                        line_display,
+                        green_instruction_text,
+                        (5, 145),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (0, 255, 0),
+                        2,
+                        cv2.LINE_AA,
+                    )
+            except Exception as exc:
+                cv2.putText(
+                    line_display,
+                    f"GREEN ERR: {exc}",
+                    (5, 95),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+
+            try:
+                red_result = self.color_detector.detect_red_presence(line_view)
+                if red_result["found"]:
+                    red_found = True
+                    cv2.drawContours(line_display, red_result["contours"], -1, (0, 0, 255), 2)
+                    cv2.putText(
+                        line_display,
+                        "RED LINE",
+                        (5, 120),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (0, 0, 255),
+                        2,
+                        cv2.LINE_AA,
+                    )
+            except Exception as exc:
+                cv2.putText(
+                    line_display,
+                    f"RED ERR: {exc}",
+                    (5, 120),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+
         # Balls detection
         ball_frame = cv2.resize(frame_ball, (320, 240))
         ball_display = ball_frame.copy()
@@ -612,6 +910,8 @@ class VisionUI:
         status_parts = []
         status_parts.append("LINE OK" if contour is not None else "LINE NO")
         status_parts.append("SILVER LINE" if silver_found else "NO SILVER LINE")
+        status_parts.append(green_instruction_text if green_found else "NO GREEN")
+        status_parts.append("RED LINE" if red_found else "NO RED")
         status_parts.append("SILVER BALL" if live_x is not None else "NO SILVER BALL")
         status_parts.append("BLACK BALL" if dead_x is not None else "NO BLACK BALL")
         status_text = " | ".join(status_parts)

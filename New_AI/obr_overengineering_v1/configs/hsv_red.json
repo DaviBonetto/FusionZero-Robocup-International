@@ -1,0 +1,56 @@
+{
+  "hsv_ranges": {
+    "red_1": {
+      "lower": [0, 100, 100],
+      "upper": [10, 255, 255]
+    },
+    "red_2": {
+      "lower": [160, 100, 100],
+      "upper": [180, 255, 255]
+    }
+  },
+  "morphology": {
+    "kernel_shape": "rect",
+    "kernel_size": 3,
+    "open_iterations": 1,
+    "close_iterations": 2
+  },
+  "filters": {
+    "min_contour_area": 220.0,
+    "min_contour_perimeter": 40.0,
+    "min_total_area": 260.0
+  },
+  "convexity_defects": {
+    "epsilon_ratio": 0.012,
+    "min_depth": 6.0
+  },
+  "classifier": {
+    "red_line_finish": {
+      "min_aspect_ratio": 3.2,
+      "min_long_side": 30.0,
+      "max_defects": 1,
+      "min_solidity": 0.88,
+      "min_extent": 0.62
+    },
+    "rescue_zone_border": {
+      "min_defects": 2,
+      "max_aspect_ratio": 3.0,
+      "min_long_side": 36.0,
+      "shape_only_max_defects": 1,
+      "max_solidity": 0.82,
+      "max_extent": 0.60
+    }
+  },
+  "suggested_thresholds": {
+    "bright_scene": {
+      "min_s": 110,
+      "min_v": 110,
+      "close_iterations": 2
+    },
+    "low_light_scene": {
+      "min_s": 90,
+      "min_v": 80,
+      "close_iterations": 3
+    }
+  }
+}

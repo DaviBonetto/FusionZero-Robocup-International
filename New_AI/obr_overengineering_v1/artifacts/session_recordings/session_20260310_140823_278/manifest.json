@@ -1,0 +1,35 @@
+{
+  "active": false,
+  "reason": "ui",
+  "started_at": 1773162503.278877,
+  "config": {
+    "include_raw": false,
+    "include_processed": true,
+    "every_n_frames": 30,
+    "jpeg_quality": 65
+  },
+  "stats": {
+    "enabled": false,
+    "session_dir": "C:\\Users\\Davib\\OneDrive\\\u00c1rea de Trabalho\\OBR - Arquivos\\FusionZero-Robocup-International\\New_AI\\obr_overengineering_v1\\artifacts\\session_recordings\\session_20260310_140823_278",
+    "event_count": 114,
+    "frame_count": 3,
+    "dropped_records": 0,
+    "started_at": 1773162503.278877,
+    "options": {
+      "include_raw": false,
+      "include_processed": true,
+      "every_n_frames": 30,
+      "jpeg_quality": 65
+    }
+  },
+  "context": {
+    "profile": "pi3_field",
+    "camera": {
+      "index": 0,
+      "width": 640,
+      "height": 480,
+      "fps": 20
+    },
+    "config_path": "New_AI/obr_overengineering_v1/configs/vision_config.json"
+  }
+}

@@ -10,3 +10,4 @@ adafruit-circuitpython-vl53l1x
 adafruit-circuitpython-bno08x
 adafruit-circuitpython-servokit
 adafruit-blinka
+pyserial==3.5

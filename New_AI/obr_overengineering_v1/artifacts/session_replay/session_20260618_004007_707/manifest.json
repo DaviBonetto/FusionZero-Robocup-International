@@ -1,0 +1,38 @@
+{
+  "active": false,
+  "reason": "configure",
+  "started_at": 1781754007.7079809,
+  "config": {
+    "include_raw": true,
+    "include_processed": true,
+    "every_n_frames": 5,
+    "jpeg_quality": 68
+  },
+  "stats": {
+    "enabled": false,
+    "session_dir": "/home/newgears/FusionZero-Robocup-International/New_AI/obr_overengineering_v1/artifacts/session_recordings/session_20260618_004007_707",
+    "event_count": 0,
+    "frame_count": 0,
+    "dropped_records": 0,
+    "started_at": 1781754007.7079809,
+    "latest_marker": "/home/newgears/FusionZero-Robocup-International/New_AI/obr_overengineering_v1/artifacts/session_recordings/latest_session.json",
+    "options": {
+      "include_raw": true,
+      "include_processed": true,
+      "every_n_frames": 5,
+      "jpeg_quality": 68
+    }
+  },
+  "context": {
+    "profile": "line_only",
+    "robot_backend": "pca9685",
+    "camera": {
+      "index": 0,
+      "width": 640,
+      "height": 480,
+      "fps": 25,
+      "rotation": 90
+    },
+    "config_path": "New_AI/obr_overengineering_v1/configs/vision_config.json"
+  }
+}

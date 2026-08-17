@@ -23,3 +23,6 @@ temp_frames/
 1_international/tests/victims/frames
 
 sessions/
+New_AI/obr_overengineering_v1/.venv/
+New_AI/obr_overengineering_v1/.venv-pc/
+New_AI/obr_overengineering_v1/deploy/fusionzero.env
